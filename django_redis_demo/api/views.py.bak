@@ -1,0 +1,99 @@
+import json
+from django.conf import settings
+import redis
+from rest_framework.decorators import api_view
+from rest_framework import status
+from rest_framework.response import Response
+
+
+
+# connect to our Redis instance
+redis_master = redis.StrictRedis(host='127.0.0.1',
+                                   port='6379', db=0)
+
+redis_master = redis.StrictRedis(host='127.0.0.12',
+                                   port='6379', db=0)
+
+
+@api_view(['GET', 'POST'])
+def manage_items(request, *args, **kwargs):
+    if request.method == 'GET':
+        items = {}
+        count = 0
+        for key in redis_master.keys("*"):
+            items[key.decode("utf-8")] = redis_master.get(key)
+            count += 1
+        response = {
+            'count': count,
+            'msg': f"Found {count} items.",
+            'items': items
+        }
+        return Response(response, status=200)
+
+    elif request.method == 'POST':
+        item = json.loads(request.body)
+        key = list(item.keys())[0]
+        value = item[key]
+        redis_master.set(key, value)
+        response = {
+            'msg': f"{key} successfully set to {value}"
+        }
+        return Response(response, 201)
+
+
+@api_view(['GET', 'PUT', 'DELETE'])
+def manage_item(request, *args, **kwargs):
+    if request.method == 'GET':
+        if kwargs['key']:
+            value = redis_master.get(kwargs['key'])
+            if value:
+                response = {
+                    'key': kwargs['key'],
+                    'value': value,
+                    'msg': 'success'
+                }
+                return Response(response, status=200)
+            else:
+                response = {
+                    'key': kwargs['key'],
+                    'value': None,
+                    'msg': 'Not found'
+                }
+                return Response(response, status=404)
+
+    elif request.method == 'PUT':
+        if kwargs['key']:
+            request_data = json.loads(request.body)
+            new_value = request_data['new_value']
+            value = redis_master.get(kwargs['key'])
+            if value:
+                redis_master.set(kwargs['key'], new_value)
+                response = {
+                    'key': kwargs['key'],
+                    'value': value,
+                    'msg': f"Successfully updated {kwargs['key']}"
+                }
+                return Response(response, status=200)
+            else:
+                response = {
+                    'key': kwargs['key'],
+                    'value': None,
+                    'msg': 'Not found'
+                }
+                return Response(response, status=404)
+
+    elif request.method == 'DELETE':
+        if kwargs['key']:
+            result = redis_master.delete(kwargs['key'])
+            if result == 1:
+                response = {
+                    'msg': f"{kwargs['key']} successfully deleted"
+                }
+                return Response(response, status=404)
+            else:
+                response = {
+                    'key': kwargs['key'],
+                    'value': None,
+                    'msg': 'Not found'
+                }
+                return Response(response, status=404)                

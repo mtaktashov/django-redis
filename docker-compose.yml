@@ -1,0 +1,10 @@
+version: "3.3"
+   
+services:
+  web:
+    build: .
+    command: python django_redis_demo/manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/var/www/api/django-redis
+    ports:
+      - "8000:8000"

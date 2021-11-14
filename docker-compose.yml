@@ -7,4 +7,4 @@ services:
     volumes:
       - .:/var/www/api/django-redis
     ports:
-      - "8000:8000"
+      - "80:8000"

@@ -1,0 +1,7 @@
+[Unit]
+Description=Redis Slice
+Before=slices.target
+
+[Slice]
+AllowedCPUs=1
+CPUQuota=10%
